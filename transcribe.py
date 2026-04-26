@@ -104,13 +104,48 @@ def transcribe_audio(audio_path: str, language: str = "Marathi") -> str:
 
     print(f"[2/3] Sending audio to Gemini for {language} transcription ...")
 
+    # DETAILED GUIDELINES FROM USER
+    transcription_instructions = f"""
+    You are a professional Marathi transcriber. Transcribe the provided audio following these STRICT guidelines for Spontaneous Speech:
+
+    1. VERBATIM TRANSCRIPTION:
+       - Transcribe every word, filler, and sound. 
+       - Use specific Marathi spellings: 'ठीक आहे', 'नको आहे', 'महत्त्व', 'माहीत'.
+
+    2. FILLER WORDS (Must be in [square brackets]):
+       - Use ONLY these spellings: [अ], [अं], [ओ], [हं], [उं हूं], [हो], [हुं], [ओह], [ऑ], [हो ना], [आह], [चक्], [श], [ऊ], [ह], [अ-ं हं], [शकु ]
+       - Example: [अ], त्यांना सुद्धा मतदानाचा अधिकार...
+
+    3. NON-VERBAL SOUNDS (Must be in <angle brackets>):
+       - Use ONLY: <laugh>, <cry>, <gag>, <throatclear>, <gasp>, <cough>, <swallow>, <noise>, <pause>, <inaudible>
+       - Use <pause> for silences > 1 second.
+       - Example: मला तसे, <cough> म्हणायचे नव्हते.
+
+    4. NUMBERS & FORMATTING:
+       - Convert spoken numbers to digits: "एकोणीसशे चौऱ्याहत्तर" -> १९७४, "बेचाळीस" -> ४२.
+       - Dates: "एक जानेवारी दोन हजार पंचवीस" -> १ जानेवारी २०२५.
+       - Currency: "पाचशे डॉलर्स" -> $५००, "दहा रुपये" -> ₹१०.
+
+    5. SPECIAL SYMBOLS:
+       - False starts/Stammering: Use a hyphen. Example: "न-न-नक्की", "ग-गजे-गजेंद्र".
+       - Unclear words: Use double brackets ((guess)).
+       - Foreign words: Use curly brackets {{word}}.
+       - Cut-off speech at end: Use em-dash —.
+       - Multiple speakers: Label as (Speaker 1), (Speaker 2).
+
+    6. PUNCTUATION:
+       - Only use: . ? ! , " ' - —
+       - DO NOT use colons (:) or semicolons (;).
+
+    The audio is in {language}. Return ONLY the transcript.
+    """
+
     llm = ChatGoogleGenerativeAI(
         model="gemini-3-flash-preview",   # supports audio natively
         google_api_key=api_key,
         temperature=0,               # deterministic for transcription
     )
 
-    # Multimodal message: inline audio + instruction text
     message = HumanMessage(
         content=[
             {
@@ -120,11 +155,7 @@ def transcribe_audio(audio_path: str, language: str = "Marathi") -> str:
             },
             {
                 "type": "text",
-                "text": (
-                    f"Please transcribe the following audio accurately. "
-                    f"The audio is in {language}. "
-                    f"Return ONLY the verbatim transcript with no additional commentary."
-                ),
+                "text": transcription_instructions,
             },
         ]
     )
